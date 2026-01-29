@@ -116,6 +116,56 @@ async function run() {
         }
     });
 
+    app.get('/my-cars', verifyJWT, async (req, res) => {
+        const { sort } = req.query;
+        const query = { ownerEmail: req.user?.email };
+        let options = {};
+        if (sort === 'price_asc') options.sort = { dailyPrice: 1 };
+        if (sort === 'price_desc') options.sort = { dailyPrice: -1 };
+        if (sort === 'date_desc') options.sort = { postedDate: -1 };
+        if (sort === 'date_asc') options.sort = { postedDate: 1 };
+        const result = await carsCollection.find(query, options).toArray();
+        res.send(result);
+    });
+
+    app.patch('/cars/:id', verifyJWT, async (req, res) => {
+        try {
+            const id = req.params.id;
+            const body = req.body || {};
+            const query = { _id: new ObjectId(id), ownerEmail: req.user?.email };
+            const updateDoc = {
+                $set: {
+                    model: body.model,
+                    brand: body.brand,
+                    dailyPrice: Number(body.dailyPrice),
+                    available: Boolean(body.available),
+                    regNumber: body.regNumber,
+                    features: Array.isArray(body.features) ? body.features : [],
+                    description: body.description,
+                    image: body.image,
+                    location: body.location,
+                    fuelType: body.fuelType,
+                    transmission: body.transmission,
+                }
+            };
+            const result = await carsCollection.updateOne(query, updateDoc);
+            res.json({ modifiedCount: result.modifiedCount });
+        } catch (e) {
+            res.status(500).json({ message: 'Failed to update car' });
+        }
+    });
+
+    app.delete('/cars/:id', verifyJWT, async (req, res) => {
+        try {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id), ownerEmail: req.user?.email };
+            const result = await carsCollection.deleteOne(query);
+            res.json({ deletedCount: result.deletedCount });
+        } catch (e) {
+            res.status(500).json({ message: 'Failed to delete car' });
+        }
+    });
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
