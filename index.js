@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const verifyJWT = require('./middleware/verifyJWT');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -86,6 +87,33 @@ async function run() {
         const query = { _id: new ObjectId(id) };
         const result = await carsCollection.findOne(query);
         res.send(result);
+    });
+
+    app.post('/cars', verifyJWT, async (req, res) => {
+        try {
+            const payload = req.body || {};
+            const ownerEmail = req.user?.email;
+            const doc = {
+                model: payload.model,
+                brand: payload.brand,
+                dailyPrice: Number(payload.dailyPrice),
+                available: Boolean(payload.available),
+                regNumber: payload.regNumber,
+                features: Array.isArray(payload.features) ? payload.features : [],
+                description: payload.description,
+                image: payload.image,
+                location: payload.location,
+                fuelType: payload.fuelType,
+                transmission: payload.transmission,
+                bookingCount: 0,
+                postedDate: new Date(),
+                ownerEmail
+            };
+            const result = await carsCollection.insertOne(doc);
+            res.status(201).json({ insertedId: result.insertedId });
+        } catch (e) {
+            res.status(500).json({ message: 'Failed to add car' });
+        }
     });
 
   } finally {
