@@ -4,9 +4,19 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Auto-generate secret if missing (Dev Mode enhancement)
+if (!process.env.ACCESS_TOKEN_SECRET) {
+    console.warn("⚠️ ACCESS_TOKEN_SECRET not found in .env");
+    const secret = crypto.randomBytes(64).toString('hex');
+    process.env.ACCESS_TOKEN_SECRET = secret;
+    console.log(`✨ Generated temporary secret: ${secret}`);
+    console.log("👉 Add this to your .env file for persistence!");
+}
 
 // Middleware
 app.use(cors({
@@ -59,5 +69,8 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port: ${port}`);
+    console.log(`
+    🚀 Server is running on port: ${port}
+    🔗 http://localhost:${port}
+    `);
 });
