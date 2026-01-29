@@ -48,10 +48,45 @@ async function run() {
     }
 
     // Collections
-    // const db = client.db('carRental');
-    // const carsCollection = db.collection('cars');
+    const db = client.db('carRental');
+    const carsCollection = db.collection('cars');
 
     // Routes will go here
+    app.get('/cars', async (req, res) => {
+        const { search, sort, limit } = req.query;
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { model: { $regex: search, $options: 'i' } },
+                    { brand: { $regex: search, $options: 'i' } },
+                    { location: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+
+        let options = {};
+        if (sort === 'price_asc') options.sort = { dailyPrice: 1 };
+        if (sort === 'price_desc') options.sort = { dailyPrice: -1 };
+        if (sort === 'date_desc') options.sort = { postedDate: -1 };
+        if (sort === 'date_asc') options.sort = { postedDate: 1 };
+
+        const cursor = carsCollection.find(query, options);
+        if(limit) {
+            const result = await cursor.limit(parseInt(limit)).toArray();
+            return res.send(result);
+        }
+        const result = await cursor.toArray();
+        res.send(result);
+    });
+
+    app.get('/cars/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await carsCollection.findOne(query);
+        res.send(result);
+    });
 
   } finally {
     // Ensures that the client will close when you finish/error
