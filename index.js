@@ -10,7 +10,7 @@ const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:5173'], // Adjust for production
+    origin: ['http://localhost:5173'],
     credentials: true
 }));
 app.use(express.json());
@@ -31,7 +31,7 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
-    
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -48,6 +48,10 @@ async function run() {
   }
 }
 run().catch(console.dir);
+
+// Routes
+const authRoutes = require('./routes/auth.routes');
+app.use('/', authRoutes);
 
 app.get('/', (req, res) => {
     res.send('Car Rental System Server is Running');
