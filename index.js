@@ -51,6 +51,7 @@ async function run() {
     // Collections
     const db = client.db('carRental');
     const carsCollection = db.collection('cars');
+    const bookingsCollection = db.collection('bookings');
 
     // Routes will go here
     app.get('/cars', async (req, res) => {
@@ -163,6 +164,78 @@ async function run() {
             res.json({ deletedCount: result.deletedCount });
         } catch (e) {
             res.status(500).json({ message: 'Failed to delete car' });
+        }
+    });
+
+    app.post('/bookings', verifyJWT, async (req, res) => {
+        try {
+            const body = req.body || {};
+            const carId = body.carId;
+            const startDate = new Date(body.startDate);
+            const endDate = new Date(body.endDate);
+            if (!(carId && startDate && endDate) || endDate <= startDate) {
+                return res.status(400).json({ message: 'Invalid booking dates' });
+            }
+            const car = await carsCollection.findOne({ _id: new ObjectId(carId) });
+            if (!car) return res.status(404).json({ message: 'Car not found' });
+            const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+            const totalPrice = days * Number(car.dailyPrice);
+            const doc = {
+                carId: new ObjectId(carId),
+                carModel: car.model,
+                carImage: car.image,
+                dailyPrice: car.dailyPrice,
+                startDate,
+                endDate,
+                days,
+                totalPrice,
+                status: 'confirmed',
+                userEmail: req.user?.email,
+                createdAt: new Date(),
+            };
+            const result = await bookingsCollection.insertOne(doc);
+            await carsCollection.updateOne({ _id: new ObjectId(carId) }, { $inc: { bookingCount: 1 } });
+            res.status(201).json({ insertedId: result.insertedId });
+        } catch (e) {
+            res.status(500).json({ message: 'Failed to create booking' });
+        }
+    });
+
+    app.get('/my-bookings', verifyJWT, async (req, res) => {
+        const { sort } = req.query;
+        const query = { userEmail: req.user?.email };
+        let options = {};
+        if (sort === 'date_desc') options.sort = { createdAt: -1 };
+        if (sort === 'date_asc') options.sort = { createdAt: 1 };
+        if (sort === 'price_desc') options.sort = { totalPrice: -1 };
+        if (sort === 'price_asc') options.sort = { totalPrice: 1 };
+        const result = await bookingsCollection.find(query, options).toArray();
+        res.send(result);
+    });
+
+    app.patch('/bookings/:id', verifyJWT, async (req, res) => {
+        try {
+            const id = req.params.id;
+            const body = req.body || {};
+            const query = { _id: new ObjectId(id), userEmail: req.user?.email };
+            let update = {};
+            if (body.status) {
+                update.$set = { ...(update.$set || {}), status: body.status };
+            }
+            if (body.startDate && body.endDate) {
+                const startDate = new Date(body.startDate);
+                const endDate = new Date(body.endDate);
+                if (endDate <= startDate) return res.status(400).json({ message: 'Invalid dates' });
+                const booking = await bookingsCollection.findOne(query);
+                if (!booking) return res.status(404).json({ message: 'Booking not found' });
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+                const totalPrice = days * Number(booking.dailyPrice);
+                update.$set = { ...(update.$set || {}), startDate, endDate, days, totalPrice };
+            }
+            const result = await bookingsCollection.updateOne(query, update);
+            res.json({ modifiedCount: result.modifiedCount });
+        } catch (e) {
+            res.status(500).json({ message: 'Failed to update booking' });
         }
     });
 
