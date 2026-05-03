@@ -96,13 +96,15 @@ async function run() {
       date_asc: { postedDate: 1 },
     }
 
+    const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
     // ---------- CARS ----------
     app.get('/cars', async (req, res) => {
       try {
         const { search, sort, limit } = req.query
         const query = {}
         if (search && String(search).trim()) {
-          const rx = { $regex: String(search).trim(), $options: 'i' }
+          const rx = { $regex: escapeRegex(String(search).trim()), $options: 'i' }
           query.$or = [{ model: rx }, { brand: rx }, { location: rx }]
         }
         const options = sortMap[sort] ? { sort: sortMap[sort] } : {}
@@ -295,6 +297,10 @@ async function run() {
         const query = { _id: new ObjectId(id), userEmail: req.user?.email }
         const update = { $set: {} }
         if (body.status) update.$set.status = body.status
+        // Partial date updates are not allowed — both must be present together.
+        if ((body.startDate && !body.endDate) || (body.endDate && !body.startDate)) {
+          return res.status(400).json({ message: 'Both startDate and endDate are required to change the booking dates' })
+        }
         if (body.startDate && body.endDate) {
           const startDate = new Date(body.startDate)
           const endDate = new Date(body.endDate)
