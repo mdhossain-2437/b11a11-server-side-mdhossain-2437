@@ -1,15 +1,26 @@
 {
-  "name": "server",
+  "name": "velocitydrive-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "Express + MongoDB API for the VelocityDrive car rental platform.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No tests configured\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["car-rental", "express", "mongodb", "jwt", "rest-api"],
+  "author": "DELOWAR <replit2437@gmail.com>",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongodb": "^7.2.0"
+  }
 }
