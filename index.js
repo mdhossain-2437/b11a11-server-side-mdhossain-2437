@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 
 const verifyJWT = require('./middleware/verifyJWT')
+const requestLogger = require('./middleware/requestLogger')
 const authRoutes = require('./routes/auth.routes')
 
 const app = express()
@@ -40,6 +41,7 @@ app.use(
 )
 app.use(express.json({ limit: '1mb' }))
 app.use(cookieParser())
+app.use(requestLogger)
 
 // Mount auth (JWT cookie + logout) routes early
 app.use('/', authRoutes)
