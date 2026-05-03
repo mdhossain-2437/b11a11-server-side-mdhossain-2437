@@ -51,9 +51,17 @@ app.use('/', authRoutes)
 app.get('/', (_req, res) => {
   res.send('VelocityDrive · Car Rental API is running')
 })
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  let mongo = 'unknown'
+  try {
+    await client.db('admin').command({ ping: 1 })
+    mongo = 'ok'
+  } catch {
+    mongo = 'down'
+  }
   res.json({
     status: 'ok',
+    mongo,
     uptime: Math.floor(process.uptime()),
     env: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
