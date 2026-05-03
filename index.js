@@ -8,6 +8,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const verifyJWT = require('./middleware/verifyJWT')
 const requestLogger = require('./middleware/requestLogger')
 const authRoutes = require('./routes/auth.routes')
+const sampleCars = require('./data/sample-cars')
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -189,6 +190,29 @@ async function run() {
         res.json({ deletedCount: result.deletedCount })
       } catch {
         res.status(500).json({ message: 'Failed to delete car' })
+      }
+    })
+
+    // ---------- SEED ----------
+    // POST /seed?key=<SEED_KEY>  — clears the cars collection and inserts the demo set.
+    app.post('/seed', async (req, res) => {
+      try {
+        const key = req.query.key || req.headers['x-seed-key']
+        if (!process.env.SEED_KEY) return res.status(403).json({ message: 'Seeding disabled' })
+        if (key !== process.env.SEED_KEY) return res.status(401).json({ message: 'Invalid seed key' })
+        const owner = req.headers['x-seed-owner'] || 'demo@velocitydrive.app'
+        await carsCollection.deleteMany({ ownerEmail: owner })
+        const docs = sampleCars.map((c) => ({
+          ...c,
+          bookingCount: 0,
+          postedDate: new Date(),
+          ownerEmail: owner,
+        }))
+        const result = await carsCollection.insertMany(docs)
+        res.json({ insertedCount: result.insertedCount })
+      } catch (err) {
+        console.error(err)
+        res.status(500).json({ message: 'Failed to seed cars' })
       }
     })
 
